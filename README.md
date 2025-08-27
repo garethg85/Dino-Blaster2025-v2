@@ -30,3 +30,4 @@ Supports Windows, Mac, and Linux via Python + Pygame.
 
 ## 🧾 License
 MIT — free to use, modify, and distribute.
+
