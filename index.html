@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dino Blaster 2025 v2</title>
   <style>
     body {
@@ -13,23 +13,49 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: white;
       user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     canvas#gameCanvas {
       display: block;
-      width: 800px;
-      height: 600px;
+      max-width: 100%;
+      max-height: 100%;
       background: black;
       border: 3px solid #555;
       image-rendering: pixelated;
+    }
+    #gameOver {
+      display: none;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+    }
+    #gameOver button {
+      font-size: 24px;
+      padding: 10px 20px;
+      background: #FF4444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #gameOver button:hover {
+      background: #FF6666;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <canvas id="gameCanvas"></canvas>
+  <div id="gameOver">
+    <h1 id="gameOverText"></h1>
+    <p>Final Score: <span id="finalScore"></span></p>
+    <button onclick="restart()">Restart</button>
+  </div>
   <script src="script.js" defer></script>
 </body>
 </html>
