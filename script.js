@@ -4,7 +4,6 @@ const ctx = canvas.getContext("2d");
 function WIDTH() { return canvas.width; }
 function HEIGHT() { return canvas.height; }
 
-
 // Game State
 let gameRunning = true;
 let score = 0;
@@ -710,14 +709,9 @@ function update() {
   requestAnimationFrame(update);
 }
 
+// Set canvas size
+canvas.width = 800;
+canvas.height = 600;
 
 // Start the game
 update();
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-
-
-
-
-
-
