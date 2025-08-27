@@ -20,17 +20,18 @@
   </style>
 </head>
 <body>
-  <!-- ✅ Fixed: give the canvas real width/height -->
+  <!-- ✅ Canvas element -->
   <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-  <script src="script.js"></script>
+  <!-- ✅ Main game logic, deferred until DOM is ready -->
+  <script src="script.js" defer></script>
+
+  <!-- ✅ Canvas fullscreen resize logic -->
   <script>
-    // ✅ Resize to fullscreen on load
     const canvas = document.getElementById("gameCanvas");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Optional: handle resize dynamically
     window.addEventListener("resize", () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -38,4 +39,3 @@
   </script>
 </body>
 </html>
-
