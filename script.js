@@ -1,8 +1,9 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
+function WIDTH() { return canvas.width; }
+function HEIGHT() { return canvas.height; }
+
 
 // Game State
 let gameRunning = true;
@@ -711,3 +712,4 @@ function update() {
 
 // Start the game
 update();
+
