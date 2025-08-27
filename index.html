@@ -1,41 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dino Blaster 2025 v2</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background: black;
+      background: #222;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
+      user-select: none;
     }
-    canvas {
+    canvas#gameCanvas {
       display: block;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
+      width: 800px;
+      height: 600px;
+      background: black;
+      border: 3px solid #555;
+      image-rendering: pixelated;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
   </style>
 </head>
 <body>
-  <!-- ✅ Canvas element -->
   <canvas id="gameCanvas" width="800" height="600"></canvas>
-
-  <!-- ✅ Main game logic, deferred until DOM is ready -->
   <script src="script.js" defer></script>
-
-  <!-- ✅ Canvas fullscreen resize logic -->
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  </script>
 </body>
 </html>
