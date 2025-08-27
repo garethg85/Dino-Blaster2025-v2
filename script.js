@@ -78,7 +78,7 @@ const boss = {
 let bossHealth = 150;
 const bossMaxHealth = 150;
 
-// Input handling
+// Input handling for keyboard
 const keys = {};
 document.addEventListener("keydown", e => {
   keys[e.code] = true;
@@ -87,6 +87,85 @@ document.addEventListener("keydown", e => {
 document.addEventListener("keyup", e => {
   keys[e.code] = false;
   keys[e.key.toLowerCase()] = false;
+});
+
+// Touch controls
+const touchState = {
+  joystick: { active: false, x: 0, y: 0, dx: 0, dy: 0 },
+  shoot: { active: false }
+};
+const joystick = {
+  outerRadius: 50,
+  innerRadius: 20,
+  x: 100,
+  y: HEIGHT - 60
+};
+const shootButton = {
+  radius: 40,
+  x: WIDTH - 100,
+  y: HEIGHT - 60
+};
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  const touches = e.changedTouches;
+  for (let i = 0; i < touches.length; i++) {
+    const touch = touches[i];
+    const touchX = touch.clientX - canvas.getBoundingClientRect().left;
+    const touchY = touch.clientY - canvas.getBoundingClientRect().top;
+    if (touchX < WIDTH / 2) {
+      touchState.joystick.active = true;
+      touchState.joystick.x = touchX;
+      touchState.joystick.y = touchY;
+      joystick.x = touchX;
+      joystick.y = touchY;
+    } else {
+      const dx = touchX - shootButton.x;
+      const dy = touchY - shootButton.y;
+      if (Math.sqrt(dx * dx + dy * dy) < shootButton.radius) {
+        touchState.shoot.active = true;
+      }
+    }
+  }
+});
+canvas.addEventListener("touchmove", e => {
+  e.preventDefault();
+  const touches = e.changedTouches;
+  for (let i = 0; i < touches.length; i++) {
+    const touch = touches[i];
+    const touchX = touch.clientX - canvas.getBoundingClientRect().left;
+    const touchY = touch.clientY - canvas.getBoundingClientRect().top;
+    if (touchState.joystick.active && touchX < WIDTH / 2) {
+      touchState.joystick.x = touchX;
+      touchState.joystick.y = touchY;
+      const dx = touchX - joystick.x;
+      const dy = touchY - joystick.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const maxDistance = joystick.outerRadius - joystick.innerRadius;
+      if (distance > maxDistance) {
+        const scale = maxDistance / distance;
+        touchState.joystick.dx = dx * scale;
+        touchState.joystick.dy = dy * scale;
+      } else {
+        touchState.joystick.dx = dx;
+        touchState.joystick.dy = dy;
+      }
+    }
+  }
+});
+canvas.addEventListener("touchend", e => {
+  e.preventDefault();
+  const touches = e.changedTouches;
+  for (let i = 0; i < touches.length; i++) {
+    const touch = touches[i];
+    const touchX = touch.clientX - canvas.getBoundingClientRect().left;
+    if (touchX < WIDTH / 2) {
+      touchState.joystick.active = false;
+      touchState.joystick.dx = 0;
+      touchState.joystick.dy = 0;
+    } else {
+      touchState.shoot.active = false;
+    }
+  }
 });
 
 // Bullet class
@@ -112,7 +191,6 @@ class Bullet {
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
     
-    // Glow effect
     ctx.shadowColor = this.color;
     ctx.shadowBlur = 8;
     ctx.beginPath();
@@ -170,16 +248,13 @@ function spawnEnemy() {
 function drawBackground() {
   const level = LEVELS[levelNames[currentLevel]];
   
-  // Gradient background
   const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
   gradient.addColorStop(0, level.bgColor[0]);
   gradient.addColorStop(1, level.bgColor[1]);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
   
-  // Level-specific decorations
   if (level.trees) {
-    // Draw jungle trees
     for (let i = 0; i < 5; i++) {
       const x = i * 160 + 50;
       ctx.fillStyle = '#654321';
@@ -190,7 +265,6 @@ function drawBackground() {
       ctx.fill();
     }
   } else if (level.lava) {
-    // Draw lava bubbles
     for (let i = 0; i < 8; i++) {
       const x = Math.sin(levelTimer * 0.02 + i) * 50 + i * 100;
       const y = HEIGHT - 30 + Math.sin(levelTimer * 0.03 + i * 2) * 10;
@@ -200,7 +274,6 @@ function drawBackground() {
       ctx.fill();
     }
   } else if (level.snow) {
-    // Draw falling snow
     for (let i = 0; i < 30; i++) {
       const x = (i * 37 + levelTimer) % WIDTH;
       const y = (i * 23 + levelTimer * 0.5) % HEIGHT;
@@ -210,7 +283,6 @@ function drawBackground() {
       ctx.fill();
     }
   } else if (level.sand) {
-    // Draw sand dunes
     ctx.fillStyle = 'rgba(222, 184, 135, 0.3)';
     for (let i = 0; i < 4; i++) {
       const x = i * 200;
@@ -222,25 +294,37 @@ function drawBackground() {
 }
 
 function drawPlayer() {
-  // Player body with cartoon style
-  ctx.fillStyle = '#4CAF50';
-  ctx.fillRect(player.x, player.y, player.w, player.h);
+  // Dinosaur-like appearance (T-Rex inspired)
+  ctx.fillStyle = '#4CAF50'; // Green body
+  // Body (main rectangle, slightly larger)
+  ctx.fillRect(player.x + 10, player.y + 10, player.w - 10, player.h - 10);
   
-  // Player face
-  ctx.fillStyle = 'white';
-  ctx.fillRect(player.x + 8, player.y + 8, 8, 8);
-  ctx.fillRect(player.x + 24, player.y + 8, 8, 8);
-  
-  ctx.fillStyle = 'black';
-  ctx.fillRect(player.x + 10, player.y + 10, 4, 4);
-  ctx.fillRect(player.x + 26, player.y + 10, 4, 4);
-  
-  // Smile
-  ctx.strokeStyle = 'black';
-  ctx.lineWidth = 2;
+  // Head (circle at the front)
   ctx.beginPath();
-  ctx.arc(player.x + 20, player.y + 25, 8, 0, Math.PI);
-  ctx.stroke();
+  ctx.arc(player.x + player.w, player.y + 10, 10, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Tail (triangle pointing left)
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y + player.h / 2);
+  ctx.lineTo(player.x - 20, player.y + player.h / 2 - 10);
+  ctx.lineTo(player.x - 20, player.y + player.h / 2 + 10);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Legs (two small rectangles)
+  ctx.fillRect(player.x + 10, player.y + player.h - 10, 8, 10);
+  ctx.fillRect(player.x + 25, player.y + player.h - 10, 8, 10);
+  
+  // Eye on head
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.arc(player.x + player.w - 3, player.y + 7, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'black';
+  ctx.beginPath();
+  ctx.arc(player.x + player.w - 3, player.y + 7, 1.5, 0, Math.PI * 2);
+  ctx.fill();
   
   // Health bar
   if (player.health < player.maxHealth) {
@@ -254,17 +338,14 @@ function drawPlayer() {
 function drawEnemy(enemy) {
   const level = LEVELS[levelNames[currentLevel]];
   
-  // Enemy body
   ctx.fillStyle = level.enemyColor;
   ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
   
-  // Enemy eyes (angry)
   ctx.fillStyle = 'red';
   const eyeSize = enemy.w * 0.15;
   ctx.fillRect(enemy.x + enemy.w * 0.2, enemy.y + enemy.h * 0.2, eyeSize, eyeSize);
   ctx.fillRect(enemy.x + enemy.w * 0.65, enemy.y + enemy.h * 0.2, eyeSize, eyeSize);
   
-  // Health bar for stronger enemies
   if (enemy.health < enemy.maxHealth) {
     ctx.fillStyle = 'red';
     ctx.fillRect(enemy.x, enemy.y - 8, enemy.w, 4);
@@ -276,11 +357,9 @@ function drawEnemy(enemy) {
 function drawBoss() {
   const level = LEVELS[levelNames[currentLevel]];
   
-  // Boss body
   ctx.fillStyle = level.bossColor;
   ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
   
-  // Boss details
   ctx.fillStyle = 'red';
   ctx.fillRect(boss.x + 30, boss.y + 15, 25, 25);
   ctx.fillRect(boss.x + 145, boss.y + 15, 25, 25);
@@ -289,7 +368,6 @@ function drawBoss() {
   ctx.fillRect(boss.x + 33, boss.y + 18, 19, 19);
   ctx.fillRect(boss.x + 148, boss.y + 18, 19, 19);
   
-  // Boss horns/spikes
   ctx.fillStyle = '#444';
   for (let i = 0; i < 5; i++) {
     const x = boss.x + 20 + i * 32;
@@ -301,7 +379,6 @@ function drawBoss() {
     ctx.fill();
   }
   
-  // Boss health bar
   const barWidth = 300;
   const barHeight = 20;
   const barX = WIDTH / 2 - barWidth / 2;
@@ -323,7 +400,6 @@ function drawBoss() {
 function drawUI() {
   const level = LEVELS[levelNames[currentLevel]];
   
-  // Level name
   ctx.fillStyle = 'white';
   ctx.font = 'bold 28px Arial';
   ctx.textAlign = 'left';
@@ -332,12 +408,10 @@ function drawUI() {
   ctx.strokeText(level.name, 20, 40);
   ctx.fillText(level.name, 20, 40);
   
-  // Score
   ctx.textAlign = 'right';
   ctx.strokeText(`Score: ${score}`, WIDTH - 20, 40);
   ctx.fillText(`Score: ${score}`, WIDTH - 20, 40);
   
-  // Progress indicator
   if (!bossActive) {
     ctx.font = '18px Arial';
     ctx.textAlign = 'center';
@@ -346,32 +420,60 @@ function drawUI() {
     ctx.fillText(`Enemies defeated: ${progress}/20 - Boss spawns at 20!`, WIDTH/2, HEIGHT - 30);
   }
   
-  // Controls
-  ctx.font = '14px Arial';
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.fillText('WASD/Arrows: Move • SPACE: Shoot • R: Restart', WIDTH/2, HEIGHT - 10);
+  if ('ontouchstart' in window || navigator.maxTouchPoints) {
+    if (touchState.joystick.active) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.beginPath();
+      ctx.arc(joystick.x, joystick.y, joystick.outerRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.beginPath();
+      ctx.arc(
+        joystick.x + touchState.joystick.dx,
+        joystick.y + touchState.joystick.dy,
+        joystick.innerRadius,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+    ctx.fillStyle = touchState.shoot.active ? 'rgba(255, 0, 0, 0.6)' : 'rgba(255, 0, 0, 0.3)';
+    ctx.beginPath();
+    ctx.arc(shootButton.x, shootButton.y, shootButton.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('SHOOT', shootButton.x, shootButton.y + 5);
+  } else {
+    ctx.font = '14px Arial';
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fillText('WASD/Arrows: Move • SPACE: Shoot • R: Restart', WIDTH/2, HEIGHT - 10);
+  }
 }
 
 function updatePlayer() {
-  // Movement
   if (keys["ArrowLeft"] || keys["a"]) player.x -= player.speed;
   if (keys["ArrowRight"] || keys["d"]) player.x += player.speed;
   if (keys["ArrowUp"] || keys["w"]) player.y -= player.speed;
   if (keys["ArrowDown"] || keys["s"]) player.y += player.speed;
   
-  // Keep player in bounds
-  player.x = Math.max(0, Math.min(WIDTH - player.w, player.x));
-  player.y = Math.max(HEIGHT/3, Math.min(HEIGHT - player.h, player.y));
+  if (touchState.joystick.active) {
+    const speedScale = player.speed / (joystick.outerRadius - joystick.innerRadius);
+    player.x += touchState.joystick.dx * speedScale;
+    player.y += touchState.joystick.dy * speedScale;
+  }
   
-  // Shooting
+  player.x = Math.max(0, Math.min(WIDTH - player.w, player.x));
+  player.y = Math.max(HEIGHT/3, Math.min(HEIGHT - player.h - 80, player.y));
+  
   if (player.shootCooldown > 0) player.shootCooldown--;
   
-  if ((keys["Space"] || keys[" "]) && player.shootCooldown === 0) {
+  if ((keys["Space"] || keys[" "] || touchState.shoot.active) && player.shootCooldown === 0) {
     player.bullets.push(new Bullet(player.x + player.w/2, player.y, 0, -8, '#FFD700', 6, 25));
     player.shootCooldown = 8;
   }
   
-  // Update bullets
   player.bullets = player.bullets.filter(bullet => {
     bullet.update();
     return bullet.y > -20;
@@ -379,20 +481,17 @@ function updatePlayer() {
 }
 
 function updateEnemies() {
-  // Spawn enemies
   enemyTimer++;
   if (enemyTimer >= enemySpawnRate && !bossActive && enemiesKilled < 20) {
     spawnEnemy();
     enemyTimer = 0;
   }
   
-  // Update enemies
   enemies = enemies.filter(enemy => {
     enemy.y += enemy.speed;
     return enemy.y < HEIGHT + 100;
   });
   
-  // Spawn boss when enough enemies defeated
   if (enemiesKilled >= 20 && !bossActive) {
     bossActive = true;
     enemies = [];
@@ -405,7 +504,6 @@ function updateBoss() {
   
   boss.moveTimer++;
   
-  // Boss movement pattern
   if (boss.moveTimer % 120 < 60) {
     boss.x += boss.direction * 2;
     if (boss.x <= 0 || boss.x >= WIDTH - boss.w) {
@@ -413,29 +511,23 @@ function updateBoss() {
     }
   }
   
-  // Boss shooting
   boss.shootTimer++;
   if (boss.shootTimer >= 35) {
     boss.shootTimer = 0;
     
-    // Different attack patterns based on health
     if (bossHealth > bossMaxHealth * 0.7) {
-      // Single shot
       boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, 0, 5, '#FF4444', 10, 30));
     } else if (bossHealth > bossMaxHealth * 0.3) {
-      // Triple shot
       boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, -3, 5, '#FF4444', 8, 25));
       boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, 0, 5, '#FF4444', 8, 25));
       boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, 3, 5, '#FF4444', 8, 25));
     } else {
-      // Spray pattern
       for (let i = -2; i <= 2; i++) {
         boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, i * 2, 5, '#FF6666', 6, 20));
       }
     }
   }
   
-  // Update boss bullets
   boss.bullets = boss.bullets.filter(bullet => {
     bullet.update();
     return bullet.y < HEIGHT + 20 && bullet.x > -20 && bullet.x < WIDTH + 20;
@@ -443,7 +535,6 @@ function updateBoss() {
 }
 
 function checkCollisions() {
-  // Player bullets vs enemies
   player.bullets.forEach((bullet, bIndex) => {
     enemies.forEach((enemy, eIndex) => {
       if (bullet.x > enemy.x && bullet.x < enemy.x + enemy.w &&
@@ -452,7 +543,6 @@ function checkCollisions() {
         enemy.health -= bullet.damage;
         player.bullets.splice(bIndex, 1);
         
-        // Explosion particles
         for (let i = 0; i < 5; i++) {
           particles.push(new Particle(bullet.x, bullet.y, '#FFD700'));
         }
@@ -466,7 +556,6 @@ function checkCollisions() {
     });
   });
   
-  // Player bullets vs boss
   if (bossActive) {
     player.bullets.forEach((bullet, bIndex) => {
       if (bullet.x > boss.x && bullet.x < boss.x + boss.w &&
@@ -476,7 +565,6 @@ function checkCollisions() {
         player.bullets.splice(bIndex, 1);
         score += 200;
         
-        // Boss hit particles
         for (let i = 0; i < 8; i++) {
           particles.push(new Particle(bullet.x, bullet.y, '#FF6666'));
         }
@@ -484,7 +572,6 @@ function checkCollisions() {
     });
   }
   
-  // Boss bullets vs player
   boss.bullets.forEach((bullet, bIndex) => {
     if (bullet.x > player.x && bullet.x < player.x + player.w &&
         bullet.y > player.y && bullet.y < player.y + player.h) {
@@ -492,14 +579,12 @@ function checkCollisions() {
       boss.bullets.splice(bIndex, 1);
       player.health -= bullet.damage;
       
-      // Player damage particles
       for (let i = 0; i < 4; i++) {
         particles.push(new Particle(player.x + player.w/2, player.y + player.h/2, '#FF4444'));
       }
     }
   });
   
-  // Enemies vs player
   enemies.forEach((enemy, eIndex) => {
     if (enemy.x < player.x + player.w && enemy.x + enemy.w > player.x &&
         enemy.y < player.y + player.h && enemy.y + enemy.h > player.y) {
@@ -521,9 +606,8 @@ function nextLevel() {
   enemies = [];
   boss.bullets = [];
   enemiesKilled = 0;
-  score += 2000; // Level completion bonus
+  score += 2000;
   
-  // Heal player slightly
   player.health = Math.min(player.maxHealth, player.health + 30);
 }
 
@@ -594,7 +678,6 @@ function update() {
   updateBoss();
   checkCollisions();
   
-  // Update particles
   particles.forEach((particle, index) => {
     particle.update();
     if (particle.life <= 0) {
@@ -602,7 +685,7 @@ function update() {
     }
   });
   
-  // Draw everything
+  drawUI();
   enemies.forEach(drawEnemy);
   
   if (bossActive) {
@@ -614,9 +697,6 @@ function update() {
   player.bullets.forEach(bullet => bullet.draw());
   particles.forEach(particle => particle.draw());
   
-  drawUI();
-  
-  // Check win/lose conditions
   if (bossHealth <= 0 && bossActive) {
     setTimeout(() => nextLevel(), 1000);
   }
