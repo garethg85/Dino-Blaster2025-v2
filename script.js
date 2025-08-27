@@ -5,6 +5,14 @@ if (!ctx) {
   alert("Error: Canvas 2D context not supported. Try a different browser.");
 }
 
+// Dynamic canvas size
+function resizeCanvas() {
+  canvas.width = Math.min(window.innerWidth, 800);
+  canvas.height = Math.min(window.innerHeight, 600);
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
 function WIDTH() { return canvas.width; }
 function HEIGHT() { return canvas.height; }
 
@@ -12,36 +20,12 @@ function HEIGHT() { return canvas.height; }
 let gameRunning = true;
 let score = 0;
 
-// Levels with visual themes (no external images)
+// Levels with visual themes
 const LEVELS = {
-  Jungle: {
-    bgColor: ['#1a4d1a', '#2e8b2e'],
-    enemyColor: '#8B4513',
-    bossColor: '#654321',
-    name: '🌴 JUNGLE LEVEL 🌴',
-    trees: true
-  },
-  Volcano: {
-    bgColor: ['#8B0000', '#FF4500'],
-    enemyColor: '#B22222',
-    bossColor: '#800000',
-    name: '🌋 VOLCANO LEVEL 🌋',
-    lava: true
-  },
-  Ice: {
-    bgColor: ['#191970', '#4169E1'],
-    enemyColor: '#4682B4',
-    bossColor: '#2F4F4F',
-    name: '❄️ ICE LEVEL ❄️',
-    snow: true
-  },
-  Desert: {
-    bgColor: ['#F4A460', '#DEB887'],
-    enemyColor: '#D2691E',
-    bossColor: '#A0522D',
-    name: '🏜️ DESERT LEVEL 🏜️',
-    sand: true
-  }
+  Jungle: { bgColor: ['#1a4d1a', '#2e8b2e'], enemyColor: '#8B4513', bossColor: '#654321', name: '🌴 JUNGLE LEVEL 🌴', trees: true },
+  Volcano: { bgColor: ['#8B0000', '#FF4500'], enemyColor: '#B22222', bossColor: '#800000', name: '🌋 VOLCANO LEVEL 🌋', lava: true },
+  Ice: { bgColor: ['#191970', '#4169E1'], enemyColor: '#4682B4', bossColor: '#2F4F4F', name: '❄️ ICE LEVEL ❄️', snow: true },
+  Desert: { bgColor: ['#F4A460', '#DEB887'], enemyColor: '#D2691E', bossColor: '#A0522D', name: '🏜️ DESERT LEVEL 🏜️', sand: true }
 };
 
 const levelNames = Object.keys(LEVELS);
@@ -50,8 +34,8 @@ let levelTimer = 0;
 
 // Player
 const player = { 
-  x: 400, 
-  y: 500, 
+  x: WIDTH() / 2, 
+  y: HEIGHT() - 100, 
   w: 40, 
   h: 40, 
   speed: 6,
@@ -70,7 +54,7 @@ let enemiesKilled = 0;
 // Boss
 let bossActive = false;
 const boss = { 
-  x: 300, 
+  x: WIDTH() / 2 - 100, 
   y: 80, 
   w: 200, 
   h: 80,
@@ -82,7 +66,7 @@ const boss = {
 let bossHealth = 150;
 const bossMaxHealth = 150;
 
-// Input handling for keyboard
+// Input handling
 const keys = {};
 document.addEventListener("keydown", e => {
   keys[e.code] = true;
@@ -122,12 +106,8 @@ canvas.addEventListener("touchstart", e => {
       touchState.joystick.y = touchY;
       joystick.x = touchX;
       joystick.y = touchY;
-    } else {
-      const dx = touchX - shootButton.x;
-      const dy = touchY - shootButton.y;
-      if (Math.sqrt(dx * dx + dy * dy) < shootButton.radius) {
-        touchState.shoot.active = true;
-      }
+    } else if (Math.hypot(touchX - shootButton.x, touchY - shootButton.y) < shootButton.radius) {
+      touchState.shoot.active = true;
     }
   }
 });
@@ -160,8 +140,7 @@ canvas.addEventListener("touchend", e => {
   e.preventDefault();
   const touches = e.changedTouches;
   for (let i = 0; i < touches.length; i++) {
-    const touch = touches[i];
-    const touchX = touch.clientX - canvas.getBoundingClientRect().left;
+    const touchX = touches[i].clientX - canvas.getBoundingClientRect().left;
     if (touchX < WIDTH() / 2) {
       touchState.joystick.active = false;
       touchState.joystick.dx = 0;
@@ -183,18 +162,12 @@ class Bullet {
     this.size = size;
     this.damage = damage;
   }
-  
-  update() {
-    this.x += this.dx;
-    this.y += this.dy;
-  }
-  
+  update() { this.x += this.dx; this.y += this.dy; }
   draw() {
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
-    
     ctx.shadowColor = this.color;
     ctx.shadowBlur = 8;
     ctx.beginPath();
@@ -217,7 +190,6 @@ class Particle {
     this.maxLife = this.life;
     this.size = 2 + Math.random() * 4;
   }
-  
   update() {
     this.x += this.dx;
     this.y += this.dy;
@@ -225,7 +197,6 @@ class Particle {
     this.dx *= 0.95;
     this.dy *= 0.95;
   }
-  
   draw() {
     const alpha = this.life / this.maxLife;
     const hex = Math.floor(alpha * 255).toString(16).padStart(2, '0');
@@ -239,10 +210,7 @@ class Particle {
 function spawnEnemy() {
   const x = Math.random() * (WIDTH() - 50);
   enemies.push({ 
-    x, 
-    y: -50, 
-    w: 40 + Math.random() * 20, 
-    h: 40 + Math.random() * 20,
+    x, y: -50, w: 40 + Math.random() * 20, h: 40 + Math.random() * 20,
     speed: 1.5 + Math.random() * 2,
     health: 30 + currentLevel * 10,
     maxHealth: 30 + currentLevel * 10
@@ -251,15 +219,13 @@ function spawnEnemy() {
 
 function drawBackground() {
   const level = LEVELS[levelNames[currentLevel]];
-  
   const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT());
   gradient.addColorStop(0, level.bgColor[0]);
   gradient.addColorStop(1, level.bgColor[1]);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, WIDTH(), HEIGHT());
-  
   if (level.trees) {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < Math.floor(WIDTH() / 160) + 1; i++) {
       const x = i * 160 + 50;
       ctx.fillStyle = '#654321';
       ctx.fillRect(x, HEIGHT() - 60, 20, 60);
@@ -269,7 +235,7 @@ function drawBackground() {
       ctx.fill();
     }
   } else if (level.lava) {
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < Math.floor(WIDTH() / 100) + 1; i++) {
       const x = Math.sin(levelTimer * 0.02 + i) * 50 + i * 100;
       const y = HEIGHT() - 30 + Math.sin(levelTimer * 0.03 + i * 2) * 10;
       ctx.fillStyle = '#FF6347';
@@ -288,7 +254,7 @@ function drawBackground() {
     }
   } else if (level.sand) {
     ctx.fillStyle = 'rgba(222, 184, 135, 0.3)';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < Math.floor(WIDTH() / 200) + 1; i++) {
       const x = i * 200;
       ctx.beginPath();
       ctx.ellipse(x, HEIGHT() - 20, 150, 40, 0, 0, Math.PI * 2);
@@ -363,16 +329,15 @@ function drawBoss() {
     ctx.closePath();
     ctx.fill();
   }
-  const barWidth = 300;
-  const barHeight = 20;
+  const barWidth = Math.min(300, WIDTH() - 40);
   const barX = WIDTH() / 2 - barWidth / 2;
   const barY = 20;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(barX - 5, barY - 5, barWidth + 10, barHeight + 10);
+  ctx.fillRect(barX - 5, barY - 5, barWidth + 10, 30);
   ctx.fillStyle = '#8B0000';
-  ctx.fillRect(barX, barY, barWidth, barHeight);
+  ctx.fillRect(barX, barY, barWidth, 20);
   ctx.fillStyle = '#FF4500';
-  ctx.fillRect(barX, barY, barWidth * (bossHealth / bossMaxHealth), barHeight);
+  ctx.fillRect(barX, barY, barWidth * (bossHealth / bossMaxHealth), 20);
   ctx.fillStyle = 'white';
   ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
@@ -382,7 +347,7 @@ function drawBoss() {
 function drawUI() {
   const level = LEVELS[levelNames[currentLevel]];
   ctx.fillStyle = 'white';
-  ctx.font = 'bold 28px Arial';
+  ctx.font = `bold ${Math.min(28, WIDTH() / 20)}px Arial`;
   ctx.textAlign = 'left';
   ctx.strokeStyle = 'black';
   ctx.lineWidth = 3;
@@ -392,11 +357,11 @@ function drawUI() {
   ctx.strokeText(`Score: ${score}`, WIDTH() - 20, 40);
   ctx.fillText(`Score: ${score}`, WIDTH() - 20, 40);
   if (!bossActive) {
-    ctx.font = '18px Arial';
+    ctx.font = `${Math.min(18, WIDTH() / 30)}px Arial`;
     ctx.textAlign = 'center';
     ctx.fillStyle = 'yellow';
     const progress = Math.min(enemiesKilled, 20);
-    ctx.fillText(`Enemies defeated: ${progress}/20 - Boss spawns at 20!`, WIDTH()/2, HEIGHT() - 30);
+    ctx.fillText(`Enemies defeated: ${progress}/20 - Boss spawns at 20!`, WIDTH() / 2, HEIGHT() - 30);
   }
   if ('ontouchstart' in window || navigator.maxTouchPoints) {
     if (touchState.joystick.active) {
@@ -406,13 +371,7 @@ function drawUI() {
       ctx.fill();
       ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.beginPath();
-      ctx.arc(
-        joystick.x + touchState.joystick.dx,
-        joystick.y + touchState.joystick.dy,
-        joystick.innerRadius,
-        0,
-        Math.PI * 2
-      );
+      ctx.arc(joystick.x + touchState.joystick.dx, joystick.y + touchState.joystick.dy, joystick.innerRadius, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = touchState.shoot.active ? 'rgba(255, 0, 0, 0.6)' : 'rgba(255, 0, 0, 0.3)';
@@ -420,13 +379,13 @@ function drawUI() {
     ctx.arc(shootButton.x, shootButton.y, shootButton.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = 'white';
-    ctx.font = '20px Arial';
+    ctx.font = `${Math.min(20, WIDTH() / 30)}px Arial`;
     ctx.textAlign = 'center';
     ctx.fillText('SHOOT', shootButton.x, shootButton.y + 5);
   } else {
-    ctx.font = '14px Arial';
+    ctx.font = `${Math.min(14, WIDTH() / 40)}px Arial`;
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    ctx.fillText('WASD/Arrows: Move • SPACE: Shoot • R: Restart', WIDTH()/2, HEIGHT() - 10);
+    ctx.fillText('WASD/Arrows: Move • SPACE: Shoot • R: Restart', WIDTH() / 2, HEIGHT() - 10);
   }
 }
 
@@ -441,10 +400,10 @@ function updatePlayer() {
     player.y += touchState.joystick.dy * speedScale;
   }
   player.x = Math.max(0, Math.min(WIDTH() - player.w, player.x));
-  player.y = Math.max(HEIGHT()/3, Math.min(HEIGHT() - player.h - 80, player.y));
+  player.y = Math.max(HEIGHT() / 3, Math.min(HEIGHT() - player.h - 80, player.y));
   if (player.shootCooldown > 0) player.shootCooldown--;
   if ((keys["Space"] || keys[" "] || touchState.shoot.active) && player.shootCooldown === 0) {
-    player.bullets.push(new Bullet(player.x + player.w/2, player.y, 0, -8, '#FFD700', 6, 25));
+    player.bullets.push(new Bullet(player.x + player.w / 2, player.y, 0, -8, '#FFD700', 6, 25));
     player.shootCooldown = 8;
   }
   player.bullets = player.bullets.filter(bullet => {
@@ -467,6 +426,7 @@ function updateEnemies() {
     bossActive = true;
     enemies = [];
     bossHealth = bossMaxHealth;
+    boss.x = WIDTH() / 2 - boss.w / 2;
   }
 }
 
@@ -483,14 +443,14 @@ function updateBoss() {
   if (boss.shootTimer >= 35) {
     boss.shootTimer = 0;
     if (bossHealth > bossMaxHealth * 0.7) {
-      boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, 0, 5, '#FF4444', 10, 30));
+      boss.bullets.push(new Bullet(boss.x + boss.w / 2, boss.y + boss.h, 0, 5, '#FF4444', 10, 30));
     } else if (bossHealth > bossMaxHealth * 0.3) {
-      boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, -3, 5, '#FF4444', 8, 25));
-      boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, 0, 5, '#FF4444', 8, 25));
-      boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, 3, 5, '#FF4444', 8, 25));
+      boss.bullets.push(new Bullet(boss.x + boss.w / 2, boss.y + boss.h, -3, 5, '#FF4444', 8, 25));
+      boss.bullets.push(new Bullet(boss.x + boss.w / 2, boss.y + boss.h, 0, 5, '#FF4444', 8, 25));
+      boss.bullets.push(new Bullet(boss.x + boss.w / 2, boss.y + boss.h, 3, 5, '#FF4444', 8, 25));
     } else {
       for (let i = -2; i <= 2; i++) {
-        boss.bullets.push(new Bullet(boss.x + boss.w/2, boss.y + boss.h, i * 2, 5, '#FF6666', 6, 20));
+        boss.bullets.push(new Bullet(boss.x + boss.w / 2, boss.y + boss.h, i * 2, 5, '#FF6666', 6, 20));
       }
     }
   }
@@ -537,7 +497,7 @@ function checkCollisions() {
       boss.bullets.splice(bIndex, 1);
       player.health -= bullet.damage;
       for (let i = 0; i < 4; i++) {
-        particles.push(new Particle(player.x + player.w/2, player.y + player.h/2, '#FF4444'));
+        particles.push(new Particle(player.x + player.w / 2, player.y + player.h / 2, '#FF4444'));
       }
     }
   });
@@ -547,7 +507,7 @@ function checkCollisions() {
       enemies.splice(eIndex, 1);
       player.health -= 25;
       for (let i = 0; i < 6; i++) {
-        particles.push(new Particle(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#FF8888'));
+        particles.push(new Particle(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, '#FF8888'));
       }
     }
   });
@@ -562,32 +522,19 @@ function nextLevel() {
   enemiesKilled = 0;
   score += 2000;
   player.health = Math.min(player.maxHealth, player.health + 30);
+  player.x = WIDTH() / 2;
+  player.y = HEIGHT() - 100;
+  resizeCanvas();
 }
 
 function gameOver(won) {
   gameRunning = false;
-  ctx.fillStyle = 'rgba(0,0,0,0.85)';
-  ctx.fillRect(0, 0, WIDTH(), HEIGHT());
-  ctx.fillStyle = 'white';
-  ctx.font = 'bold 48px Arial';
-  ctx.textAlign = 'center';
-  if (won) {
-    ctx.fillText('LEVEL COMPLETE! 🎉', WIDTH()/2, HEIGHT()/2 - 60);
-    ctx.fillStyle = '#FFD700';
-    ctx.font = '32px Arial';
-    ctx.fillText(`Final Score: ${score}`, WIDTH()/2, HEIGHT()/2);
-  } else {
-    ctx.fillText('GAME OVER! 💀', WIDTH()/2, HEIGHT()/2 - 60);
-    ctx.fillStyle = '#FF6666';
-    ctx.font = '32px Arial';
-    ctx.fillText(`Final Score: ${score}`, WIDTH()/2, HEIGHT()/2);
-  }
-  ctx.fillStyle = 'white';
-  ctx.font = '24px Arial';
-  ctx.fillText('Press R to restart', WIDTH()/2, HEIGHT()/2 + 60);
+  document.getElementById('gameOver').style.display = 'block';
+  document.getElementById('gameOverText').textContent = won ? 'LEVEL COMPLETE! 🎉' : 'GAME OVER! 💀';
+  document.getElementById('finalScore').textContent = score;
 }
 
-function restart() {
+window.restart = function() {
   gameRunning = true;
   currentLevel = 0;
   score = 0;
@@ -596,20 +543,22 @@ function restart() {
   bossHealth = bossMaxHealth;
   levelTimer = 0;
   player.health = player.maxHealth;
-  player.x = 400;
-  player.y = 500;
+  player.x = WIDTH() / 2;
+  player.y = HEIGHT() - 100;
   player.bullets = [];
   player.shootCooldown = 0;
   enemies = [];
   boss.bullets = [];
   particles.length = 0;
+  document.getElementById('gameOver').style.display = 'none';
+  resizeCanvas();
   update();
-}
+};
 
 function update() {
   if (!gameRunning) {
     if (keys['r'] || keys['R']) {
-      restart();
+      window.restart();
       return;
     }
     return;
@@ -636,7 +585,7 @@ function update() {
   player.bullets.forEach(bullet => bullet.draw());
   particles.forEach(particle => particle.draw());
   if (bossHealth <= 0 && bossActive) {
-    setTimeout(() => nextLevel(), 1000);
+    setTimeout(() => gameOver(true), 1000);
   }
   if (player.health <= 0) {
     gameOver(false);
@@ -645,5 +594,4 @@ function update() {
   requestAnimationFrame(update);
 }
 
-// Start the game
 update();
